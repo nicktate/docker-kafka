@@ -7,9 +7,9 @@ var async = require("async");
 var child_process = require("child_process");
 
 async.parallel({
-    CLUSTER_LEADER: function(fn){
+    ZOOKEEPER_HOST: function(fn){
         var question = dns.Question({
-          name: ["leaders", process.env.CS_CLUSTER_ID, "containership"].join("."),
+          name: process.env.ZOOKEEPER_HOST,
           type: "A"
         });
 
@@ -62,13 +62,14 @@ async.parallel({
         req.send();
     }
 }, function(err, kafka){
-    _.merge(kafka, process.env);
+    _.defaults(kafka, process.env);
 
     _.defaults(kafka, {
         KAFKA_BROKER_ID: Math.floor((Math.random() * 256000000) + 1),
         KAFKA_PORT: 9092,
         KAFKA_ADVERTISED_PORT: 9092,
-        ZOOKEEPER_APP_NAME: "zookeeper",
+        ZOOKEEPER_HOST: "localhost",
+        ZOOKEEPER_PORT: 2181,
         ZOOKEEPER_CHROOT: "/kafka"
     });
 
@@ -85,48 +86,10 @@ async.parallel({
             config = config.replace(/{{KAFKA_ADVERTISED_HOST_NAME}}/g, kafka.KAFKA_ADVERTISED_HOST_NAME);
             config = config.replace(/{{KAFKA_PORT}}/g, kafka.KAFKA_PORT);
             config = config.replace(/{{KAFKA_ADVERTISED_PORT}}/g, kafka.KAFKA_ADVERTISED_PORT);
+            config = config.replace(/{{ZOOKEEPER_IP}}/g, kafka.ZOOKEEPER_HOST);
+            config = config.replace(/{{ZOOKEEPER_PORT}}/g, kafka.ZOOKEEPER_PORT);
             config = config.replace(/{{ZOOKEEPER_CHROOT}}/g, kafka.ZOOKEEPER_CHROOT);
             return fn(null, config);
-        },
-        function(config, fn){
-            var options = {
-                url: ["http:/", [kafka.CLUSTER_LEADER, "8080"].join(":"), "v1", "applications", kafka.ZOOKEEPER_APP_NAME].join("/"),
-                method: "GET",
-                json: true,
-                timeout: 5000
-            }
-
-            request(options, function(err, response){
-                if(err)
-                    return fn(err);
-                else if(response && response.statusCode != 200)
-                    return fn(new Error("Received non-200 status code from leader!"));
-                else{
-                    var zk_port = response.body.container_port;
-                    async.map(_.pluck(response.body.containers, "host"), function(id, fn){
-                        var options = {
-                            url: ["http:/", [kafka.CLUSTER_LEADER, "8080"].join(":"), "v1", "hosts", id].join("/"),
-                            method: "GET",
-                            json: true,
-                            timeout: 5000
-                        }
-
-                        request(options, function(err, response){
-                            if(err)
-                                return fn(null, "");
-                            else
-                                return fn(null, response.body.address.private);
-                        });
-                    }, function(err, zookeeper_ips){
-                        zookeeper_ips = _.compact(zookeeper_ips);
-                        zookeeper_ips = _.map(zookeeper_ips, function(zk_ip){
-                            return [zk_ip, zk_port].join(":");
-                        }).join(",");
-                        config = config.replace(/{{ZOOKEEPER_IP}}:{{ZOOKEEPER_PORT}}/g, zookeeper_ips);
-                        return fn(null, config);
-                    });
-                }
-            });
         },
         function(config, fn){
             fs.writeFile(config_location, config, fn);
