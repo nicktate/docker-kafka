@@ -19,8 +19,5 @@ ADD . /app
 # install dependencies
 RUN npm install
 
-# set user to kafka
-USER kafka
-
 # Execute the run script
 CMD node kafka.js
