@@ -9,29 +9,29 @@ const os = require('os');
 const request = require('request');
 
 async.parallel({
-	ZOOKEEPER_HOST: (fn) => {
+	ZOOKEEPER_HOST: (callback) => {
 		const question = dns.Question({
 			name: process.env.ZOOKEEPER_HOST,
-			type: "A"
+			type: 'A'
 		});
 
 		const req = dns.Request({
 			question: question,
-			server: { address: "127.0.0.1", port: 53, type: "udp" },
+			server: { address: '127.0.0.1', port: 53, type: 'udp' },
 			timeout: 2000
 		});
 
-		req.on("timeout", () => {
-			return fn();
+		req.on('timeout', () => {
+			return callback();
 		});
 
-		req.on("message", (err, answer) => {
+		req.on('message', (err, answer) => {
 			const addresses = [];
 			answer.answer.forEach((a) => {
 				addresses.push(a.address);
 			});
 
-			return fn(null, _.first(addresses));
+			return callback(null, _.first(addresses));
 		});
 
 		req.send();
@@ -76,7 +76,7 @@ async.parallel({
         KAFKA_ADVERTISED_PORT: 9092,
         KAFKA_DELETE_TOPIC_ENABLE: false,
         GROUP_MAX_SESSION_TIMEOUT_MS: 30000,
-        ZOOKEEPER_CHROOT: "/kafka",
+        ZOOKEEPER_CHROOT: '/kafka',
         ZOOKEEPER_HOST: 'localhost',
         ZOOKEEPER_PORT: 2181,
         ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000,
