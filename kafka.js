@@ -47,9 +47,13 @@ async.parallel({
         KAFKA_BROKER_ID: Math.floor((Math.random() * 256000000) + 1),
         KAFKA_PORT: 9092,
         KAFKA_ADVERTISED_PORT: 9092,
+        KAFKA_DELETE_TOPIC_ENABLE: false,
+        GROUP_MAX_SESSION_TIMEOUT_MS: 30000,
+        ZOOKEEPER_CHROOT: "/kafka",
         ZOOKEEPER_HOST: 'localhost',
         ZOOKEEPER_PORT: 2181,
-        ZOOKEEPER_CHROOT: '/kafka'
+        ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000,
+        ZOOKEEPER_SESSION_TIMEOUT_MS: 6000
     });
 
     const template_location = '/kafka/config/server.properties.template';
@@ -65,9 +69,15 @@ async.parallel({
             config = config.replace(/{{KAFKA_ADVERTISED_HOST_NAME}}/g, kafka.KAFKA_ADVERTISED_HOST_NAME);
             config = config.replace(/{{KAFKA_PORT}}/g, kafka.KAFKA_PORT);
             config = config.replace(/{{KAFKA_ADVERTISED_PORT}}/g, kafka.KAFKA_ADVERTISED_PORT);
-            config = config.replace(/{{ZOOKEEPER_IP}}/g, kafka.ZOOKEEPER_HOST);
-            config = config.replace(/{{ZOOKEEPER_PORT}}/g, kafka.ZOOKEEPER_PORT);
+            config = config.replace(/{{KAFKA_DELETE_TOPIC_ENABLE}}/g, kafka.KAFKA_DELETE_TOPIC_ENABLE);
+
+            config = config.replace(/{{ZOOKEEPER_CONNECTION_STRING}}/g, kafka.ZOOKEEPER_CONNECTION_STRING || `${kafka.ZOOKEEPER_HOST}:${kafka.ZOOKEEPER_PORT}`);
             config = config.replace(/{{ZOOKEEPER_CHROOT}}/g, kafka.ZOOKEEPER_CHROOT);
+            config = config.replace(/{{ZOOKEEPER_CONNECTION_TIMEOUT_MS}}/g, kafka.ZOOKEEPER_CONNECTION_TIMEOUT_MS);
+            config = config.replace(/{{ZOOKEEPER_SESSION_TIMEOUT_MS}}/g, kafka.ZOOKEEPER_SESSION_TIMEOUT_MS);
+
+            config = config.replace(/{{GROUP_MAX_SESSION_TIMEOUT_MS}}/g, kafka.GROUP_MAX_SESSION_TIMEOUT_MS);
+
             return callback(null, config);
         },
         (config, callback) => {
