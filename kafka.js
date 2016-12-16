@@ -1,86 +1,65 @@
-var fs = require("fs");
-var os = require("os");
-var _ = require("lodash");
-var request = require("request");
-var dns = require("native-dns");
-var async = require("async");
-var child_process = require("child_process");
+'use strict';
+
+const _ = require('lodash');
+const async = require('async');
+const child_process = require('child_process');
+const dns = require('native-dns');
+const fs = require('fs');
+const os = require('os');
+const request = require('request');
 
 async.parallel({
-    ZOOKEEPER_HOST: function(fn){
-        var question = dns.Question({
-          name: process.env.ZOOKEEPER_HOST,
-          type: "A"
+    KAFKA_ADVERTISED_HOST_NAME: (callback) => {
+        const question = dns.Question({
+          name: `${os.hostname()}.${process.env.CS_CLUSTER_ID}.containership`,
+          type: 'A'
         });
 
-        var req = dns.Request({
+        const req = dns.Request({
             question: question,
-            server: { address: "127.0.0.1", port: 53, type: "udp" },
+            server: {
+                address: '127.0.0.1',
+                port: 53,
+                type: 'udp'
+            },
             timeout: 2000
         });
 
-        req.on("timeout", function(){
-            return fn();
+        req.on('timeout', () => {
+            return callback(null, '127.0.0.1');
         });
 
-        req.on("message", function (err, answer) {
-            var addresses = [];
-            answer.answer.forEach(function(a){
+        req.on('message', (err, answer) => {
+            const addresses = [];
+            answer.answer.forEach((a) => {
                 addresses.push(a.address);
             });
 
-            return fn(null, _.first(addresses));
-        });
-
-        req.send();
-    },
-    KAFKA_ADVERTISED_HOST_NAME: function(fn){
-        var question = dns.Question({
-          name: [os.hostname(), process.env.CS_CLUSTER_ID, "containership"].join("."),
-          type: "A"
-        });
-
-        var req = dns.Request({
-            question: question,
-            server: { address: "127.0.0.1", port: 53, type: "udp" },
-            timeout: 2000
-        });
-
-        req.on("timeout", function(){
-            return fn(null, "127.0.0.1");
-        });
-
-        req.on("message", function (err, answer) {
-            var addresses = [];
-            answer.answer.forEach(function(a){
-                addresses.push(a.address);
-            });
-
-            return fn(null, _.first(addresses));
+            return callback(null, _.first(addresses));
         });
 
         req.send();
     }
-}, function(err, kafka){
+}, (err, kafka) => {
     _.defaults(kafka, process.env);
 
     _.defaults(kafka, {
         KAFKA_BROKER_ID: Math.floor((Math.random() * 256000000) + 1),
         KAFKA_PORT: 9092,
         KAFKA_ADVERTISED_PORT: 9092,
-        ZOOKEEPER_HOST: "localhost",
+        ZOOKEEPER_HOST: 'localhost',
         ZOOKEEPER_PORT: 2181,
-        ZOOKEEPER_CHROOT: "/kafka"
+        ZOOKEEPER_CHROOT: '/kafka'
     });
 
-    var template_location = ["", "kafka", "config", "server.properties.template"].join("/");
-    var config_location = ["", "kafka", "config", "server.properties"].join("/");
+    const template_location = '/kafka/config/server.properties.template';
+    const config_location = '/kafka/config/server.properties';
 
     async.waterfall([
-        function(fn){
-            fs.readFile(template_location, fn);
+        (callback) => {
+            fs.readFile(template_location, callback);
         },
-        function(config, fn){
+        (config, callback) => {
             config = config.toString();
             config = config.replace(/{{KAFKA_BROKER_ID}}/g, kafka.KAFKA_BROKER_ID);
             config = config.replace(/{{KAFKA_ADVERTISED_HOST_NAME}}/g, kafka.KAFKA_ADVERTISED_HOST_NAME);
@@ -89,24 +68,24 @@ async.parallel({
             config = config.replace(/{{ZOOKEEPER_IP}}/g, kafka.ZOOKEEPER_HOST);
             config = config.replace(/{{ZOOKEEPER_PORT}}/g, kafka.ZOOKEEPER_PORT);
             config = config.replace(/{{ZOOKEEPER_CHROOT}}/g, kafka.ZOOKEEPER_CHROOT);
-            return fn(null, config);
+            return callback(null, config);
         },
-        function(config, fn){
-            fs.writeFile(config_location, config, fn);
+        (config, callback) => {
+            fs.writeFile(config_location, config, callback);
         }
-    ], function(err){
-        if(err){
-            process.stderr.write(err.message);
+    ], (err) => {
+        if(err) {
+            console.error(err.message);
             process.exit(1);
         }
 
-        var proc = child_process.spawn(["", "kafka", "bin", "kafka-server-start.sh"].join("/"), [ config_location ]);
+        const proc = child_process.spawn('/kafka/bin/kafka-server-start.sh', [ config_location ]);
 
         proc.stdout.pipe(process.stdout);
         proc.stderr.pipe(process.stderr);
 
-        proc.on("error", function(err){
-            process.stderr.write(err.message);
+        proc.on('error', (err) => {
+            console.error(err.message);
             process.exit(1);
         });
     });

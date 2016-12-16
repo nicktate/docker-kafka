@@ -1,4 +1,4 @@
-FROM ches/kafka:0.8.2.1
+FROM ches/kafka:0.10.1.0
 
 MAINTAINER ContainerShip Developers <developers@containership.io>
 
@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install curl npm -y
 
 # install node
 RUN npm install -g n
-RUN n 0.10.38
+RUN n 6.9.2
 
 # create /app and add files
 WORKDIR /app
