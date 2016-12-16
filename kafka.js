@@ -98,7 +98,7 @@ async.parallel({
             config = config.replace(/{{KAFKA_ADVERTISED_PORT}}/g, kafka.KAFKA_ADVERTISED_PORT);
             config = config.replace(/{{KAFKA_DELETE_TOPIC_ENABLE}}/g, kafka.KAFKA_DELETE_TOPIC_ENABLE);
 
-            config = config.replace(/{{ZOOKEEPER_CONNECTION_STRING}}/g, kafka.ZOOKEEPER_CONNECTION_STRING || `${kafka.ZOOKEEPER_HOST}:${kafka.ZOOKEEPER_PORT}`);
+            config = config.replace(/{{ZOOKEEPER_CONNECTION_STRING}}/g, kafka.ZOOKEEPER_CONNECTION_STRING || `${kafka.ZOOKEEPER_HOST}:${kafka.ZOOKEEPER_PORT}/${kafka.ZOOKEEPER_CHROOT}`);
             config = config.replace(/{{ZOOKEEPER_CHROOT}}/g, kafka.ZOOKEEPER_CHROOT);
             config = config.replace(/{{ZOOKEEPER_CONNECTION_TIMEOUT_MS}}/g, kafka.ZOOKEEPER_CONNECTION_TIMEOUT_MS);
             config = config.replace(/{{ZOOKEEPER_SESSION_TIMEOUT_MS}}/g, kafka.ZOOKEEPER_SESSION_TIMEOUT_MS);
