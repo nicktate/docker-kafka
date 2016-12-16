@@ -71,16 +71,20 @@ async.parallel({
     _.defaults(kafka, process.env);
 
     _.defaults(kafka, {
-        KAFKA_BROKER_ID: Math.floor((Math.random() * 256000000) + 1),
         KAFKA_PORT: 9092,
         KAFKA_ADVERTISED_PORT: 9092,
         KAFKA_DELETE_TOPIC_ENABLE: false,
+        KAFKA_MAX_BROKER_ID: 1000,
         GROUP_MAX_SESSION_TIMEOUT_MS: 30000,
         ZOOKEEPER_CHROOT: '/kafka',
         ZOOKEEPER_HOST: 'localhost',
         ZOOKEEPER_PORT: 2181,
         ZOOKEEPER_CONNECTION_TIMEOUT_MS: 6000,
         ZOOKEEPER_SESSION_TIMEOUT_MS: 6000
+    });
+
+    _.defaults(kafka, {
+        KAFKA_BROKER_ID: Math.floor(Math.random() * (kafka.KAFKA_MAX_BROKER_ID - 1))
     });
 
     const template_location = '/kafka/config/server.properties.template';
