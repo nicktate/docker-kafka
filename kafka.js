@@ -9,6 +9,33 @@ const os = require('os');
 const request = require('request');
 
 async.parallel({
+	ZOOKEEPER_HOST: (fn) => {
+		const question = dns.Question({
+			name: process.env.ZOOKEEPER_HOST,
+			type: "A"
+		});
+
+		const req = dns.Request({
+			question: question,
+			server: { address: "127.0.0.1", port: 53, type: "udp" },
+			timeout: 2000
+		});
+
+		req.on("timeout", () => {
+			return fn();
+		});
+
+		req.on("message", (err, answer) => {
+			const addresses = [];
+			answer.answer.forEach((a) => {
+				addresses.push(a.address);
+			});
+
+			return fn(null, _.first(addresses));
+		});
+
+		req.send();
+	},
     KAFKA_ADVERTISED_HOST_NAME: (callback) => {
         const question = dns.Question({
           name: `${os.hostname()}.${process.env.CS_CLUSTER_ID}.containership`,
