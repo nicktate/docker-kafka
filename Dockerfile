@@ -1,4 +1,4 @@
-FROM ches/kafka:0.10.1.0
+FROM ches/kafka:0.10.2.0
 
 MAINTAINER ContainerShip Developers <developers@containership.io>
 
